@@ -1,5 +1,6 @@
-from typing import Optional
+from dataclasses import dataclass
 
+@dataclass
 class Brand:
     def __init__(self, brand_id: int, name: str):
         self.brand_id = brand_id
@@ -8,7 +9,7 @@ class Brand:
     def __str__(self):
         return f"{self.name} (ID: {self.brand_id})"
 
-
+@dataclass
 class Model:
     def __init__(self, model_id: int, name: str, brand: Brand):
         self.model_id = model_id
@@ -18,7 +19,7 @@ class Model:
     def __str__(self):
         return f"{self.brand.name} {self.name} (Model ID: {self.model_id})"
 
-
+@dataclass
 class Vehicle_Type:
     def __init__(self, type_id: int, name: str):
         self.type_id = type_id
@@ -27,7 +28,7 @@ class Vehicle_Type:
     def __str__(self):
         return f"{self.name} (Type ID: {self.type_id})"
 
-
+@dataclass
 class Vehicle:
     def __init__(self, vehicle_id: int, license_plate: str, assigned_unit: str, brand: Brand, model: Model, vehicle_type: Vehicle_Type, status: str):
         self.id = vehicle_id
@@ -49,12 +50,10 @@ class Vehicle:
             f"Durum    : {self.status}"
         )
 
+brand = Brand(1, "Opel")
+vehicle_type = Vehicle_Type(1, "Binek")
+model = Model(1, "Astra", brand)
 
-from vehicle import Brand, Model, Vehicle_Type, Vehicle
-
-if __name__ == "__main__":
-    brand = Brand(1, "Opel")
-    vehicle_type = Vehicle_Type(1, "Binek")
-    model = Model(1, "Astra", brand)
-    vehicle = Vehicle(101, "01HLN34", "Makine İkmal", brand, model, vehicle_type, "Aktif")
-    print(vehicle)
+vehicles = [
+    Vehicle(101, "01HLN34", "Makine İkmal", brand, model, vehicle_type, "Aktif")
+]

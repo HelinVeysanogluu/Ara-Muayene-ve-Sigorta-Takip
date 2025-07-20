@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 from datetime import date
-from typing import Optional
 from vehicle import Vehicle
+from typing import Optional
 
-
+@dataclass
 class Inspection:
     def __init__(
         self,
@@ -30,35 +31,29 @@ class Inspection:
 
     def __str__(self):
         lines = [
-            f"Plaka          : {self.vehicle.license_plate}",
+            f"Plaka             : {self.vehicle.license_plate}",
             f"Muayene Türü   : {self.inspection_type}",
             f"Muayene Tarihi : {self.inspection_date.strftime('%d.%m.%Y')}",
-            f"Ücret          : {self.inspection_fee:.2f} TL",
+            f"Ücret             : {self.inspection_fee:.2f} TL",
         ]
 
         if self.penalty:
             lines.append(f"Ceza           : {self.penalty:.2f} TL")
 
         lines += [
-            f"Sonuç          : {self.result}",
-            f"Sonraki Muayene: {self.next_inspection_date.strftime('%d.%m.%Y')}" if self.next_inspection_date else "Sonraki Muayene    : Belirtilmemiş",
-            f"Personel       : {self.inspection_personnel}",
-            f"Açıklama       : {self.description if self.description else 'Yok'}"
+            f"Sonuç            : {self.result}",
+            f"Sonraki Muayene: {self.next_inspection_date.strftime('%d.%m.%Y')}" if self.next_inspection_date else "Sonraki Muayene: Belirtilmemiş",
+            f"Personel        : {self.inspection_personnel}",
+            f"Açıklama        : {self.description if self.description else 'Yok'}"
         ]
 
         return "\n".join(lines)
 
+from vehicle import vehicles
 
-if __name__ == "__main__":
-    from vehicle import Brand, Model, Vehicle_Type, Vehicle
-
-    brand = Brand(1, "Toyota")
-    vtype = Vehicle_Type(1, "SUV")
-    model = Model(1, "Corolla", brand)
-    vehicle = Vehicle(101, "01HLN34", "Makine İkmal", brand, model, vtype, "Aktif")
-
-    inspection = Inspection(
-        vehicle=vehicle,
+inspections = [
+    Inspection(
+        vehicle=vehicles[0],
         inspection_type="Fenni",
         inspection_date=date(2025, 7, 15),
         inspection_location="İstanbul",
@@ -69,5 +64,4 @@ if __name__ == "__main__":
         penalty=None,
         description="Sorunsuz geçti"
     )
-
-    print(inspection)
+]
