@@ -1,7 +1,22 @@
 from tkinter import *
-from vehicle import vehicles
-from inspection import inspections
-from insurance import insurances
+from vehicle import get_vehicle_by_plate
+from inspection import get_all_inspections_by_plate
+from insurance import get_insurance_by_plate
+
+def render_grid_block(parent, title, text, start_row=0):
+    if title:
+        Label(parent, text=title, font="Arial 18 bold", bg="#8477d4").grid(row=start_row, column=0, columnspan=2, sticky="w", pady=(20, 10))
+        start_row += 1
+    for line in text.strip().split('\n'):
+        if ':' in line:
+            key, val = line.split(':', 1)
+            Label(parent, text=key.strip(), font="Helvetica 14", bg="#c7c1f1", anchor="w").grid(row=start_row, column=0, sticky="w")
+            Label(parent, text=": " + val.strip(), font="Helvetica 14", bg="#c7c1f1", anchor="w").grid(row=start_row, column=1, sticky="w")
+            start_row += 1
+        else:
+            Label(parent, text=line.strip(), font="Helvetica 14", bg="#c7c1f1", anchor="w").grid(row=start_row, column=0, columnspan=2, sticky="w")
+            start_row += 1
+    return start_row
 
 def sorgula():
     plaka = plaka_entry.get().strip().replace(" ", "").upper()
@@ -14,25 +29,33 @@ def sorgula():
 
     Label(result_frame, text=f"Sorgulanan Plaka: {plaka}", font="Arial 20 bold", bg="#8477d4").pack(pady=20)
 
-    found_vehicle = next((v for v in vehicles if v.license_plate == plaka), None)
+    found_vehicle = get_vehicle_by_plate(plaka)
 
     if found_vehicle:
-        found_inspection = next((i for i in inspections if i.vehicle == found_vehicle), None)
-        found_insurance = next((ins for ins in insurances if ins.vehicle == found_vehicle), None)
+        inspections = get_all_inspections_by_plate(plaka)
+        found_insurance = get_insurance_by_plate(plaka)
 
-        Label(result_frame, text="Araç Bilgisi", font="Arial 18 bold", bg="#8477d4").pack(anchor="w", padx=40)
-        Label(result_frame, text=str(found_vehicle), font="Helvetica 14", bg="#c7c1f1", justify="left").pack(anchor="w", padx=60, pady=10)
+        left_frame = Frame(result_frame, bg="#c7c1f1")
+        left_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=40)
 
-        if found_inspection:
-            Label(result_frame, text="Muayene Bilgisi", font="Arial 18 bold", bg="#8477d4").pack(anchor="w", padx=40)
-            Label(result_frame, text=str(found_inspection), font="Helvetica 14", bg="#c7c1f1", justify="left").pack(anchor="w", padx=60, pady=10)
+        right_frame = Frame(result_frame, bg="#c7c1f1")
+        right_frame.pack(side=RIGHT, fill=BOTH, expand=True, padx=40)
+
+        row_index = render_grid_block(left_frame, "Araç Bilgisi", str(found_vehicle))
 
         if found_insurance:
-            Label(result_frame, text="Sigorta Bilgisi", font="Arial 18 bold", bg="#8477d4").pack(anchor="w", padx=40)
-            Label(result_frame, text=str(found_insurance), font="Helvetica 14", bg="#c7c1f1", justify="left").pack(anchor="w", padx=60, pady=10)
+            row_index = render_grid_block(left_frame, "Sigorta Bilgisi", str(found_insurance), start_row=row_index)
+
+        if inspections:
+            row_index = render_grid_block(right_frame, "Muayene Bilgileri", "")
+            for inspection in inspections:
+                row_index = render_grid_block(right_frame, "", str(inspection), start_row=row_index)
+                # araya çizgi boşluk ekle
+                Label(right_frame, text="".ljust(80, "-"), font="Helvetica 12", bg="#c7c1f1", fg="gray").grid(row=row_index, column=0, columnspan=2, sticky="w", pady=(5, 10))
+                row_index += 1
+
     else:
         Label(result_frame, text="Plakaya ait bilgi bulunamadı.", font="Arial 16", bg="#c7c1f1", fg="red").pack(pady=30)
-
 
 window = Tk()
 window.title("Araç Muayene ve Sigorta Takip")

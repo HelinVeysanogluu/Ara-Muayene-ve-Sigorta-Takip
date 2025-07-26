@@ -1,9 +1,8 @@
-from dataclasses import dataclass
-from datetime import date
-from vehicle import Vehicle
-from typing import Optional
+import psycopg2
+from datetime import datetime
+from vehicle import Vehicle, get_vehicle_by_plate
+from db import get_connection
 
-@dataclass
 class Insurance:
     def __init__(
         self,
@@ -12,8 +11,8 @@ class Insurance:
         insurance_company: str,
         policy_number: str,
         policy_amount: float,
-        start_date: date,
-        end_date: date,
+        start_date: datetime,
+        end_date: datetime,
         status: str
     ):
         self.vehicle = vehicle
@@ -28,26 +27,42 @@ class Insurance:
     def __str__(self):
         return (
             f"Plaka           : {self.vehicle.license_plate}\n"
-            f"Sigorta Türü : {self.insurance_type}\n"
+            f"Sigorta Türü    : {self.insurance_type}\n"
             f"Şirket          : {self.insurance_company}\n"
-            f"Poliçe No     : {self.policy_number}\n"
+            f"Poliçe No       : {self.policy_number}\n"
             f"Tutar           : {self.policy_amount:.2f} TL\n"
-            f"Başlangıç     : {self.start_date.strftime('%d.%m.%Y')}\n"
+            f"Başlangıç       : {self.start_date.strftime('%d.%m.%Y')}\n"
             f"Bitiş           : {self.end_date.strftime('%d.%m.%Y')}\n"
-            f"Durum          : {self.status}"
+            f"Durum           : {self.status}"
         )
 
-from vehicle import vehicles
+def get_insurance_by_plate(plate):
+    vehicle = get_vehicle_by_plate(plate)
+    if not vehicle:
+        return None
 
-insurances = [
-    Insurance(
-        vehicle=vehicles[0],
-        insurance_type="Kasko",
-        insurance_company="Sigorta",
-        policy_number="ABC123456",
-        policy_amount=2300.00,
-        start_date=date(2025, 7, 1),
-        end_date=date(2026, 7, 1),
-        status="Aktif"
-    )
-]
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT insurance_type, insurance_company, policy_number,
+               policy_amount, start_date, end_date, status
+        FROM insurance
+        WHERE vehicle = %s
+        ORDER BY start_date DESC
+        LIMIT 1
+    """, (vehicle.id,))
+
+    row = cur.fetchone()
+    conn.close()
+
+    if row:
+        start_date = datetime.strptime(row[4], '%d-%m-%Y')
+        end_date = datetime.strptime(row[5], '%d-%m-%Y')
+
+        return Insurance(
+            vehicle,
+            row[0], row[1], row[2], row[3],
+            start_date, end_date, row[6]
+        )
+    return None

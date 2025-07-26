@@ -1,20 +1,20 @@
-from dataclasses import dataclass
-from datetime import date
-from vehicle import Vehicle
-from typing import Optional
+import psycopg2
+from datetime import datetime
+from vehicle import Vehicle, get_vehicle_by_plate
+from typing import Optional, List
+from db import get_connection
 
-@dataclass
 class Inspection:
     def __init__(
         self,
         vehicle: Vehicle,
         inspection_type: str,
-        inspection_date: date,
+        inspection_date: datetime,
         inspection_location: str,
         inspection_fee: float,
         result: str,
         inspection_personnel: str,
-        next_inspection_date: Optional[date] = None,
+        next_inspection_date: Optional[datetime] = None,
         penalty: Optional[float] = None,
         description: Optional[str] = None,
     ):
@@ -31,37 +31,52 @@ class Inspection:
 
     def __str__(self):
         lines = [
-            f"Plaka             : {self.vehicle.license_plate}",
-            f"Muayene Türü   : {self.inspection_type}",
-            f"Muayene Tarihi : {self.inspection_date.strftime('%d.%m.%Y')}",
+            f"Muayene Türü      : {self.inspection_type}",
+            f"Muayene Tarihi    : {self.inspection_date.strftime('%d.%m.%Y')}",
             f"Ücret             : {self.inspection_fee:.2f} TL",
         ]
 
         if self.penalty:
-            lines.append(f"Ceza           : {self.penalty:.2f} TL")
+            lines.append(f"Ceza              : {self.penalty:.2f} TL")
 
         lines += [
-            f"Sonuç            : {self.result}",
-            f"Sonraki Muayene: {self.next_inspection_date.strftime('%d.%m.%Y')}" if self.next_inspection_date else "Sonraki Muayene: Belirtilmemiş",
-            f"Personel        : {self.inspection_personnel}",
-            f"Açıklama        : {self.description if self.description else 'Yok'}"
+            f"Sonuç             : {self.result}",
+            f"Sonraki Muayene   : {self.next_inspection_date.strftime('%d.%m.%Y')}" if self.next_inspection_date else "Sonraki Muayene   : Belirtilmemiş",
+            f"Personel          : {self.inspection_personnel}",
+            f"Açıklama          : {self.description if self.description else 'Yok'}"
         ]
 
         return "\n".join(lines)
 
-from vehicle import vehicles
+def get_all_inspections_by_plate(plate) -> List[Inspection]:
+    vehicle = get_vehicle_by_plate(plate)
+    if not vehicle:
+        return []
 
-inspections = [
-    Inspection(
-        vehicle=vehicles[0],
-        inspection_type="Fenni",
-        inspection_date=date(2025, 7, 15),
-        inspection_location="İstanbul",
-        inspection_fee=450.0,
-        result="Başarılı",
-        inspection_personnel="Helin",
-        next_inspection_date=date(2026, 7, 15),
-        penalty=None,
-        description="Sorunsuz geçti"
-    )
-]
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT inspection_type, inspection_date, inspection_location,
+               inspection_fee, result, inspection_personnel,
+               next_inspection_date, penalty, description
+        FROM inspection
+        WHERE vehicle = %s
+        ORDER BY inspection_date DESC
+    """, (vehicle.id,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    inspections = []
+    for row in rows:
+        inspection_date = datetime.strptime(row[1], '%d-%m-%Y')
+        next_inspection_date = datetime.strptime(row[6], '%d-%m-%Y') if row[6] else None
+
+        inspections.append(Inspection(
+            vehicle,
+            row[0], inspection_date, row[2], row[3],
+            row[4], row[5], next_inspection_date, row[7], row[8]
+        ))
+
+    return inspections
